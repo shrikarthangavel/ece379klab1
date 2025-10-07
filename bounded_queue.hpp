@@ -1,5 +1,15 @@
+#pragma once
 #include <mutex>
+#include <condition_variable>
+#include <deque>
 #include <stdexcept>
+#include <utility> 
+
+
+struct queue_closed : std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
 
 template <typename T> //T acts as a placeholder and allows you to put in any variable type, and cpp will work with whatever type you input.
 class BoundedQueue {
@@ -62,6 +72,23 @@ public:
             cv_not_empty_.notify_all();
         }
     }
+
+    //other helper functions
+
+    // Non-blocking queries (cheap but still synchronized)
+    bool closed() const {
+        std::lock_guard<std::mutex> lk(m_);
+        return closed_;
+    }
+
+    size_t size() const {
+        std::lock_guard<std::mutex> lk(m_);
+        return q_.size();
+    }
+
+    bool empty() const { return size() == 0; }
+
+    size_t capacity() const { return capacity_; }
 
     private:
         const size_t capacity_;
